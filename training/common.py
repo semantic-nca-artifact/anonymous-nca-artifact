@@ -33,3 +33,13 @@ def make_optimizer(model: torch.nn.Module, train_steps: int = None):
     else:
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=LR_DECAY_STEP, gamma=0.1)
     return optimizer, scheduler
+
+
+def cadence_due(step: int, interval: int) -> bool:
+    """Return whether a periodic output is due; zero disables the output."""
+    return int(interval) > 0 and int(step) % int(interval) == 0
+
+
+def checkpoint_due(step: int, interval: int, final_step: int) -> bool:
+    """Retain the final checkpoint even when intermediate saves are disabled."""
+    return int(step) == int(final_step) or cadence_due(step, interval)

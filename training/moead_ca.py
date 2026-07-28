@@ -842,6 +842,7 @@ def train_moead_core(clip_loss: CLIPLoss, seed: np.ndarray,
     os.makedirs(summary_dir, exist_ok=True)
     summary = {
         'variant': variant_name,
+        'objective_prompts': list(_cfg.OBJECTIVE_PROMPTS),
         'weights': weights.tolist(),
         'neighborhoods': neighborhoods.tolist(),
         'final_objectives': [s['obj_vec'].tolist() for s in subproblems],

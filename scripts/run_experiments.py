@@ -91,6 +91,16 @@ def parse_args():
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--cuda-visible-devices")
     parser.add_argument(
+        "--light-output",
+        action="store_true",
+        help="Disable pool figures and intermediate checkpoints; final models are retained.",
+    )
+    parser.add_argument(
+        "--allow-epo-fallback",
+        action="store_true",
+        help="Permit EPO solver fallback for diagnostic runs only.",
+    )
+    parser.add_argument(
         "--execute",
         action="store_true",
         help="Execute commands; otherwise only print the matrix.",
@@ -159,25 +169,33 @@ def build_commands(args, tasks):
                         seed,
                         task,
                     )
+                    command = [
+                        args.python,
+                        str(ROOT / "main.py"),
+                        "--train-strategy",
+                        method,
+                        "--prompt-1",
+                        task["prompt1"],
+                        "--prompt-2",
+                        task["prompt2"],
+                        "--seed",
+                        str(seed),
+                        "--steps",
+                        str(args.steps),
+                        "--log-root",
+                        str(log_root),
+                    ]
+                    if args.light_output:
+                        command.extend([
+                            "--pool-figure-interval", "0",
+                            "--checkpoint-interval", "0",
+                        ])
+                    if args.allow_epo_fallback and method == "epo":
+                        command.append("--allow-epo-fallback")
                     commands.append((
                         stage,
                         task["semantic_pair_slug"],
-                        [
-                            args.python,
-                            str(ROOT / "main.py"),
-                            "--train-strategy",
-                            method,
-                            "--prompt-1",
-                            task["prompt1"],
-                            "--prompt-2",
-                            task["prompt2"],
-                            "--seed",
-                            str(seed),
-                            "--steps",
-                            str(args.steps),
-                            "--log-root",
-                            str(log_root),
-                        ],
+                        command,
                     ))
     return commands
 

@@ -1,5 +1,6 @@
-# training/epo.py -- EPO (Exact Pareto Optimal) training strategy
+"""Preference-conditioned EPO baseline."""
 
+import json
 import os
 import numpy as np
 import torch
@@ -11,11 +12,12 @@ from config import (
     TRAIN_LOG_ROOT,
     EPO_N_PREFS,
     GRAD_CLIP_NORM,
+    POOL_FIGURE_INTERVAL, CHECKPOINT_INTERVAL,
 )
 from model import CAModel
 from utils import SamplePool, make_circle_masks, generate_pool_figures, visualize_batch, plot_loss
 from clip_loss import CLIPLoss
-from training.common import finite_clip_state, make_optimizer
+from training.common import cadence_due, checkpoint_due, finite_clip_state, make_optimizer
 
 try:
     import cvxpy as cp
@@ -27,11 +29,39 @@ except Exception:
 def _solver_status_str():
     if not HAS_CVXPY:
         return "cvxpy=NO clarabel=NO"
-    installed = set(cp.installed_solvers())
+    try:
+        installed = set(cp.installed_solvers())
+    except Exception as exc:
+        return f"cvxpy=yes solver_discovery_error={type(exc).__name__}"
     return (
         "cvxpy=yes "
         f"clarabel={'yes' if 'CLARABEL' in installed else 'NO'}"
     )
+
+
+def validate_epo_solver(allow_fallback=False):
+    """Verify that the solver required by the reported EPO runs is usable."""
+    problem = None
+    try:
+        if not HAS_CVXPY:
+            raise RuntimeError("CVXPY is not importable")
+        if "CLARABEL" not in set(cp.installed_solvers()):
+            raise RuntimeError("CLARABEL is not registered with CVXPY")
+        probe = cp.Variable()
+        problem = cp.Problem(cp.Minimize(cp.square(probe - 1.0)))
+        problem.solve(solver=cp.CLARABEL, warm_start=False)
+        if problem.status not in ("optimal", "optimal_inaccurate"):
+            raise RuntimeError(f"solver probe returned {problem.status!r}")
+    except Exception as exc:
+        message = (
+            "The EPO baseline requires a working CVXPY/CLARABEL installation; "
+            f"environment check failed: {exc}. [{_solver_status_str()}]"
+        )
+        if allow_fallback:
+            print(f"[EPO] WARNING: {message}")
+            return False
+        raise RuntimeError(message) from exc
+    return True
 
 
 def flatten_grads(grads, params):
@@ -116,11 +146,21 @@ def solve_epo(losses, grads_k, pref_vec):
     _epo_stats['calls'] += 1
     r = np.array(pref_vec, dtype=np.float64)
 
-    alpha, status = EPO_LP(losses, grads_k, pref_vec)
+    try:
+        alpha, status = EPO_LP(losses, grads_k, pref_vec)
+    except Exception as exc:
+        alpha, status = None, f"exception:{exc}"
     if alpha is not None:
         return alpha
 
-    # Fall back only when the optimization program fails.
+    import config as _cfg
+    if not _cfg.EPO_ALLOW_FALLBACK:
+        raise RuntimeError(
+            "EPO coefficient optimization failed during a formal run: "
+            f"status={status!r}. Re-run with --allow-epo-fallback only for "
+            "diagnostic smoke tests."
+        )
+
     _epo_stats['fallbacks'] += 1
     fb_rate = _epo_stats['fallbacks'] / _epo_stats['calls']
     print(f"    [EPO] fallback #{_epo_stats['fallbacks']} "
@@ -203,14 +243,11 @@ def train_epo(clip_loss: CLIPLoss, seed: np.ndarray) -> dict:
          combine the gradients, and update the model.
       3. Use losses and gradients to select balance or dominance moves.
     """
-    if not HAS_CVXPY:
-        raise RuntimeError(
-            f"EPO requires CVXPY with CLARABEL. [{_solver_status_str()}]"
-        )
-
+    import config as _cfg
+    _epo_stats.update(calls=0, fallbacks=0)
+    validate_epo_solver(allow_fallback=bool(_cfg.EPO_ALLOW_FALLBACK))
     print(f'[EPO] solver status: {_solver_status_str()}')
     device = next(clip_loss.model.parameters()).device
-    import config as _cfg
     n_prefs = EPO_N_PREFS
     pref_vectors = _cfg.EPO_PREF_VECTORS
 
@@ -294,10 +331,10 @@ def train_epo(clip_loss: CLIPLoss, seed: np.ndarray) -> dict:
             m['loss_log'].append(scalar_losses[-1])
 
             # Save diagnostics and checkpoints.
-            if step % 10 == 0:
+            if cadence_due(step, POOL_FIGURE_INTERVAL):
                 generate_pool_figures(m['pool'], step, m['log_dir'])
 
-            if step % 100 == 0:
+            if checkpoint_due(step, CHECKPOINT_INTERVAL, TRAIN_STEPS):
                 visualize_batch(x0, x_out, step, m['log_dir'])
                 plot_loss(m['loss_log'], save_path=os.path.join(m['log_dir'], 'loss.png'))
                 torch.save(m['ca'].state_dict(), os.path.join(m['log_dir'], f'{step:04d}.pt'))
@@ -324,11 +361,16 @@ def train_epo(clip_loss: CLIPLoss, seed: np.ndarray) -> dict:
 
     fb_rate = _epo_stats['fallbacks'] / max(_epo_stats['calls'], 1)
     print(f'\nEPO completed | LP calls={_epo_stats["calls"]} fallbacks={_epo_stats["fallbacks"]} rate={fb_rate:.1%}')
-    if fb_rate > 0.10:
-        print(
-            f'  WARNING: fallback_rate={fb_rate:.1%} > 10%. '
-            'Check the CVXPY/CLARABEL installation and preference vectors.'
-        )
+    diagnostics_dir = os.path.join(TRAIN_LOG_ROOT, 'epo')
+    os.makedirs(diagnostics_dir, exist_ok=True)
+    with open(os.path.join(diagnostics_dir, 'solver_diagnostics.json'), 'w', encoding='utf-8') as handle:
+        json.dump({
+            'solver': 'CLARABEL',
+            'calls': int(_epo_stats['calls']),
+            'fallbacks': int(_epo_stats['fallbacks']),
+            'fallback_allowed': bool(_cfg.EPO_ALLOW_FALLBACK),
+        }, handle, indent=2)
+        handle.write('\n')
     for key, r in results.items():
         print(f"  {key} (r={r['pref_vec']}) -> final_loss={r['final_loss']:.4f}")
     return results

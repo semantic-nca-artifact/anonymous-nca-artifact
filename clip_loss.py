@@ -1,9 +1,11 @@
+import os
+
 import torch
 import torch.nn.functional as F
 from transformers import CLIPTokenizerFast, CLIPModel
 
 from config import (
-    CLIP_MODEL_NAME, CLIP_RENDER_MODE, STATE_CLIP_VALUE,
+    CLIP_MODEL_NAME, CLIP_MODEL_REVISION, CLIP_RENDER_MODE, STATE_CLIP_VALUE,
     CLIP_MEAN, CLIP_STD,
 )
 
@@ -13,8 +15,17 @@ class CLIPLoss:
         import config as _cfg
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.tokenizer = CLIPTokenizerFast.from_pretrained(CLIP_MODEL_NAME)
-        self.model = CLIPModel.from_pretrained(CLIP_MODEL_NAME).to(device)
+        model_kwargs = {}
+        if not os.path.isdir(CLIP_MODEL_NAME):
+            model_kwargs["revision"] = CLIP_MODEL_REVISION
+        self.tokenizer = CLIPTokenizerFast.from_pretrained(
+            CLIP_MODEL_NAME,
+            **model_kwargs,
+        )
+        self.model = CLIPModel.from_pretrained(
+            CLIP_MODEL_NAME,
+            **model_kwargs,
+        ).to(device)
         self.model.eval()
         for p in self.model.parameters():
             p.requires_grad_(False)

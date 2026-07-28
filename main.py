@@ -56,7 +56,31 @@ def parse_args():
         required=True,
         help="Run-specific output directory.",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--pool-figure-interval",
+        type=int,
+        help="Save pool figures at this interval; zero disables them.",
+    )
+    parser.add_argument(
+        "--checkpoint-interval",
+        type=int,
+        help="Save intermediate checkpoints at this interval; zero keeps only final models.",
+    )
+    parser.add_argument(
+        "--allow-epo-fallback",
+        action="store_true",
+        help="Allow preference-weight fallback after an EPO solver failure (diagnostic runs only).",
+    )
+    args = parser.parse_args()
+    if args.steps < 0:
+        parser.error("--steps must be non-negative")
+    for name in ("pool_figure_interval", "checkpoint_interval"):
+        value = getattr(args, name)
+        if value is not None and value < 0:
+            parser.error(f"--{name.replace('_', '-')} must be non-negative")
+    if args.allow_epo_fallback and args.train_strategy != "epo":
+        parser.error("--allow-epo-fallback is valid only with --train-strategy epo")
+    return args
 
 
 def configure_run(args):
@@ -71,10 +95,18 @@ def configure_run(args):
         config.EPO_N_PREFS,
         k=len(config.OBJECTIVE_PROMPTS),
     )
+    config.EPO_ALLOW_FALLBACK = bool(args.allow_epo_fallback)
 
     if args.train_strategy in MOEAD_STRATEGIES:
         module_name, _ = TRAINERS[args.train_strategy]
         importlib.import_module(module_name).configure_strategy()
+
+    if args.pool_figure_interval is not None:
+        config.POOL_FIGURE_INTERVAL = int(args.pool_figure_interval)
+        config.MOEAD_POOL_FIGURE_INTERVAL = int(args.pool_figure_interval)
+    if args.checkpoint_interval is not None:
+        config.CHECKPOINT_INTERVAL = int(args.checkpoint_interval)
+        config.MOEAD_CHECKPOINT_INTERVAL = int(args.checkpoint_interval)
 
 
 def set_random_seed(seed):
@@ -98,8 +130,28 @@ def protocol_manifest(args):
         "batch_size": int(config.BATCH_SIZE),
         "pool_size": int(config.POOL_SIZE),
         "rollout_steps": [int(config.STEPS_MIN), int(config.STEPS_MAX - 1)],
+        "clip_model": str(config.CLIP_MODEL_NAME),
+        "clip_model_revision": str(config.CLIP_MODEL_REVISION),
+        "output": {
+            "pool_figure_interval": int(
+                config.MOEAD_POOL_FIGURE_INTERVAL
+                if args.train_strategy in MOEAD_STRATEGIES
+                else config.POOL_FIGURE_INTERVAL
+            ),
+            "checkpoint_interval": int(
+                config.MOEAD_CHECKPOINT_INTERVAL
+                if args.train_strategy in MOEAD_STRATEGIES
+                else config.CHECKPOINT_INTERVAL
+            ),
+        },
     }
+    if args.train_strategy == "epo":
+        manifest["epo"] = {
+            "solver": "CLARABEL",
+            "allow_fallback": bool(config.EPO_ALLOW_FALLBACK),
+        }
     if args.train_strategy in MOEAD_STRATEGIES:
+        manifest["variant_name"] = str(config.MOEAD_VARIANT_NAME)
         manifest["moead"] = {
             "population_size": int(config.MOEAD_N_SUBPROBLEMS),
             "neighbor_size": int(config.MOEAD_NEIGHBOR_SIZE),
@@ -140,10 +192,21 @@ def load_trainer(strategy):
     return getattr(module, function_name)
 
 
+def validate_training_environment(strategy):
+    if strategy != "epo":
+        return
+    module_name, _ = TRAINERS[strategy]
+    module = importlib.import_module(module_name)
+    module.validate_epo_solver(
+        allow_fallback=bool(config.EPO_ALLOW_FALLBACK),
+    )
+
+
 def main():
     args = parse_args()
     configure_run(args)
     set_random_seed(args.seed)
+    validate_training_environment(args.train_strategy)
     write_manifest(args)
 
     side = config.TARGET_SIZE + 2 * config.TARGET_PADDING
@@ -154,8 +217,8 @@ def main():
     print(f"Seed: {args.seed}")
     print(f"Training steps: {args.steps}")
 
-    clip_loss = CLIPLoss()
     trainer = load_trainer(args.train_strategy)
+    clip_loss = CLIPLoss()
     trainer(clip_loss, seed)
     return 0
 

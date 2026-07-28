@@ -8,11 +8,19 @@ from config import (
     STEPS_MIN, STEPS_MAX,
     USE_PATTERN_POOL, DAMAGE_N,
     WEIGHTED_LOSS_WEIGHTS, TRAIN_LOG_ROOT,
+    POOL_FIGURE_INTERVAL, CHECKPOINT_INTERVAL,
 )
 from model import CAModel
 from utils import SamplePool, make_circle_masks, generate_pool_figures, visualize_batch, plot_loss
 from clip_loss import CLIPLoss
-from training.common import finite_clip_state, validate_loss_weights, weight_run_name, make_optimizer
+from training.common import (
+    cadence_due,
+    checkpoint_due,
+    finite_clip_state,
+    make_optimizer,
+    validate_loss_weights,
+    weight_run_name,
+)
 
 
 def _make_rank_fn(clip_loss_fn, text_embeddings, w, device):
@@ -117,7 +125,7 @@ def _run_weighted_training_for_weights(w: list, clip_loss: CLIPLoss, seed: np.nd
 
         loss_log.append(float(loss.item()))
 
-        if step % 10 == 0:
+        if cadence_due(step, POOL_FIGURE_INTERVAL):
             def rank_fn(x_pool, _w=w, _te=text_embeddings):
                 x_t = finite_clip_state(torch.tensor(x_pool, device=device))
                 with torch.no_grad():
@@ -128,7 +136,7 @@ def _run_weighted_training_for_weights(w: list, clip_loss: CLIPLoss, seed: np.nd
                     combined = torch.where(torch.isfinite(combined), combined, torch.full_like(combined, float('inf')))
                 return combined.cpu().numpy().argsort()
             generate_pool_figures(pool, step, log_dir, rank_fn=rank_fn, highlight_first=True)
-        if step % 100 == 0:
+        if checkpoint_due(step, CHECKPOINT_INTERVAL, TRAIN_STEPS):
             visualize_batch(x0, x, step, log_dir)
             plot_loss(loss_log, save_path=os.path.join(log_dir, 'loss.png'))
             torch.save(ca.state_dict(), os.path.join(log_dir, '%04d.pt' % step))

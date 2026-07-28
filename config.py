@@ -26,6 +26,8 @@ LR = 5e-4
 LR_DECAY_STEP = 400
 GRAD_CLIP_NORM = 1.0
 STATE_CLIP_VALUE = 4.0
+POOL_FIGURE_INTERVAL = 10
+CHECKPOINT_INTERVAL = 100
 
 # CLIP
 # Prefer the conventional local cache when present; otherwise use the Hub ID.
@@ -35,6 +37,10 @@ CLIP_MODEL_NAME = os.environ.get(
     "CLIP_MODEL_NAME",
     str(_LOCAL_CLIP_MODEL) if _LOCAL_CLIP_MODEL.exists()
     else "openai/clip-vit-base-patch32",
+)
+CLIP_MODEL_REVISION = os.environ.get(
+    "CLIP_MODEL_REVISION",
+    "3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
 )
 CLIP_RENDER_MODE = "soft"
 CLIP_MEAN = [0.48145466, 0.4578275, 0.40821073]
@@ -66,6 +72,7 @@ MOO_SVGD_REPULSION_COEF = 0.1
 
 # EPO
 EPO_N_PREFS = 30
+EPO_ALLOW_FALLBACK = False
 
 
 def _make_pref_vectors(n, k=2):

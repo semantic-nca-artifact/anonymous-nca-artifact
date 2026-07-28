@@ -117,6 +117,7 @@ def collect_run_rows(
     expected_repeats=4,
     semantic_pairs=SEMANTIC_PAIRS,
     return_runs=False,
+    root_overrides=None,
 ):
     """Load one completed run for every task, method, and seed."""
 
@@ -125,11 +126,15 @@ def collect_run_rows(
     rows = []
     prompts_by_pair = {}
     run_index = {}
+    root_overrides = root_overrides or {}
 
     for pair in semantic_pairs:
         observed_prompts = set()
         for method in METHODS:
-            result_root = train_log / pair[method]
+            result_root = Path(root_overrides.get(
+                (pair["slug"], method),
+                train_log / pair[method],
+            ))
             if not result_root.is_dir():
                 raise FileNotFoundError(
                     f"Missing Stage-III root for {pair['label']} / {method}: "
@@ -324,8 +329,12 @@ def write_csv(path, rows):
     return path
 
 
-def aggregate_results(train_log, output, seeds):
-    run_rows, _ = collect_run_rows(train_log, seeds)
+def aggregate_results(train_log, output, seeds, root_overrides=None):
+    run_rows, _ = collect_run_rows(
+        train_log,
+        seeds,
+        root_overrides=root_overrides,
+    )
     aggregate_rows = aggregate_run_rows(run_rows)
     paired_rows = build_paired_rows(run_rows)
     direction_rows = build_direction_counts(
@@ -360,15 +369,35 @@ def parse_args():
         default=ROOT / "train_log" / "analysis" / "stage3",
     )
     parser.add_argument("--seeds", default="11,22,33,44,55")
+    parser.add_argument(
+        "--butterfly-ca-root",
+        type=Path,
+        help="Explicit CA result root for a historical Butterfly--Caterpillar layout.",
+    )
+    parser.add_argument(
+        "--butterfly-mca-root",
+        type=Path,
+        help="Explicit MCA result root for a historical Butterfly--Caterpillar layout.",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    root_overrides = {}
+    if args.butterfly_ca_root:
+        root_overrides[("butterfly_caterpillar", CA_METHOD)] = (
+            args.butterfly_ca_root
+        )
+    if args.butterfly_mca_root:
+        root_overrides[("butterfly_caterpillar", MCA_METHOD)] = (
+            args.butterfly_mca_root
+        )
     paths = aggregate_results(
         args.train_log,
         args.output,
         parse_seeds(args.seeds),
+        root_overrides=root_overrides,
     )
     for name, path in paths.items():
         print(f"{name}: {path}")

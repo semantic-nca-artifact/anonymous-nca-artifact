@@ -10,11 +10,12 @@ from config import (
     MOO_SVGD_PARTICLES, MOO_SVGD_BANDWIDTH,
     MOO_SVGD_REPULSION_COEF,
     GRAD_CLIP_NORM,
+    POOL_FIGURE_INTERVAL, CHECKPOINT_INTERVAL,
 )
 from model import CAModel
 from utils import SamplePool, make_circle_masks, generate_pool_figures, visualize_batch, plot_loss
 from clip_loss import CLIPLoss
-from training.common import finite_clip_state, make_optimizer
+from training.common import cadence_due, checkpoint_due, finite_clip_state, make_optimizer
 
 
 def flatten_grads(grads, params):
@@ -218,9 +219,9 @@ def train_true_moo_svgd(clip_loss: CLIPLoss, seed: np.ndarray) -> dict:
                 batch.commit()
             p['loss_log'].append(scalar_losses[i])
 
-            if step % 10 == 0:
+            if cadence_due(step, POOL_FIGURE_INTERVAL):
                 generate_pool_figures(p['pool'], step, p['log_dir'])
-            if step % 100 == 0:
+            if checkpoint_due(step, CHECKPOINT_INTERVAL, TRAIN_STEPS):
                 visualize_batch(x0, x_out, step, p['log_dir'])
                 plot_loss(p['loss_log'], save_path=os.path.join(p['log_dir'], 'loss.png'))
                 torch.save(p['ca'].state_dict(), os.path.join(p['log_dir'], '%04d.pt' % step))
