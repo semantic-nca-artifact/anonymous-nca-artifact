@@ -1,0 +1,7 @@
+semantic_pair_slug	category	prompt1	prompt2	ca_root	mca_root
+butterfly_caterpillar	Metamorphosis	a colorful butterfly with symmetric wings	a green caterpillar	moead_ca_butterfly-caterpillar	moead_mca_butterfly-caterpillar
+frog_tadpole	Metamorphosis	a green frog	a brown tadpole	moead_ca_frog-tadpole	moead_mca_frog-tadpole
+fish_starfish	Body topology	a silver fish	an orange starfish	moead_ca_fish-starfish	moead_mca_fish-starfish
+snake_bird	Body topology	a red snake	a blue bird	moead_ca_snake-bird	moead_mca_snake-bird
+mushroom_coral	Growth topology	a brown mushroom	a pink branching coral	moead_ca_mushroom-coral	moead_mca_mushroom-coral
+cactus_maple	Growth topology	a tall green cactus	a red maple tree	moead_ca_cactus-maple	moead_mca_cactus-maple

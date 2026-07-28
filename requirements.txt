@@ -1,0 +1,9 @@
+# Runtime dependencies other than PyTorch. See README.md for the CUDA build.
+transformers==4.47.1
+tokenizers==0.21.4
+safetensors==0.7.0
+numpy==1.26.4
+Pillow==11.3.0
+matplotlib==3.8.3
+scipy>=1.11
+cvxpy==1.6.5

@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+env/
+.conda/
+
+# Editors
+.vscode/
+.idea/
+*.~vsdx
+~$*
+
+# Secrets and local credentials
+id_rsa
+id_rsa.*
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+
+# Training outputs and model caches
+train_log/
+outputs/
+models/
+checkpoints/
+analysis_data/
+paper/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Generated media and reports
+*.mp4
+*.zip
+video_grid.html
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini

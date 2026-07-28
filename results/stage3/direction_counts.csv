@@ -1,0 +1,9 @@
+metric,difference_definition,seed_pair_count,seed_ca_higher,seed_mca_higher,seed_ties,task_count,task_mean_ca_higher,task_mean_mca_higher,task_mean_ties
+hypervolume,moead_mca_minus_moead_ca,30,28,2,0,6,6,0,0
+n_non_dominated,moead_mca_minus_moead_ca,30,28,2,0,6,6,0,0
+spacing,moead_mca_minus_moead_ca,30,25,5,0,6,5,1,0
+population_average_worst_similarity,moead_mca_minus_moead_ca,30,0,30,0,6,0,6,0
+best_max_min_similarity,moead_mca_minus_moead_ca,30,13,17,0,6,4,2,0
+objective_space_extent,moead_mca_minus_moead_ca,30,30,0,0,6,6,0,0
+similarity_extent_objective_1,moead_mca_minus_moead_ca,30,30,0,0,6,6,0,0
+similarity_extent_objective_2,moead_mca_minus_moead_ca,30,30,0,0,6,6,0,0
