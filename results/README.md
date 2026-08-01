@@ -38,6 +38,12 @@ directions. The Cactus--Maple rows use the task-specific prompts
 
 All path-bearing fields were removed from the published CSV files.
 
+The corresponding final Stage-III model populations are distributed under
+`../checkpoints/stage3`. Their compact `summary.json` files contain the 30
+canonical objective vectors from which these run-level metrics are computed.
+Run directories are mapped in `../checkpoints/stage3/manifest.csv` and covered
+by the accompanying SHA-256 checksum file.
+
 ## Columns and statistics
 
 The per-run tables use one independently trained population per row. `HV` is

@@ -41,6 +41,16 @@ paper/
 *.ckpt
 *.safetensors
 
+# Published final Stage-III populations (no intermediate checkpoints).
+!checkpoints/
+!checkpoints/README.md
+!checkpoints/stage3/
+!checkpoints/stage3/**/
+!checkpoints/stage3/**/*.json
+!checkpoints/stage3/**/*.csv
+!checkpoints/stage3/**/final.pt
+!checkpoints/stage3/SHA256SUMS
+
 # Generated media and reports
 *.mp4
 *.zip

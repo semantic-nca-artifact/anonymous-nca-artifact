@@ -131,9 +131,16 @@ def collect_run_rows(
     for pair in semantic_pairs:
         observed_prompts = set()
         for method in METHODS:
+            configured_root = train_log / pair[method]
+            released_root = train_log / pair["slug"] / method
+            default_root = (
+                configured_root
+                if configured_root.is_dir()
+                else released_root
+            )
             result_root = Path(root_overrides.get(
                 (pair["slug"], method),
-                train_log / pair[method],
+                default_root,
             ))
             if not result_root.is_dir():
                 raise FileNotFoundError(

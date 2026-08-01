@@ -129,7 +129,23 @@ Stage III. Use `--stage`, `--methods`, `--pairs`, and `--seeds` to select a
 subset. The printed commands can be submitted as one-GPU jobs to a cluster
 scheduler.
 
-### 2. Run a short pipeline check
+### 2. Verify the released Stage-III models
+
+The final 30-program population from every reported Stage-III run is included
+under `checkpoints/stage3`. Verify the 1,800 model files, run metadata, prompt
+assignments, and SHA-256 checksums without loading PyTorch:
+
+```bash
+python scripts/verify_stage3_checkpoints.py
+```
+
+The released `summary.json` files contain the prompt-normalized canonical
+objective vectors used by `results/stage3`. They are compact evaluation
+records, not training logs. In particular, the Cactus--Maple summaries record
+the final `a tall green cactus` evaluation rather than an earlier cached
+prompt evaluation.
+
+### 3. Run a short pipeline check
 
 The following command checks model loading, training, evaluation, and final
 model serialization for one population. Five updates are not scientifically
@@ -148,7 +164,7 @@ python scripts/run_experiments.py \
 Successful completion produces `run_manifest.json`, an `mca/summary.json`, and
 30 final model files under the selected run directory.
 
-### 3. Run the formal experiments
+### 4. Run the formal experiments
 
 Execute each stage sequentially only if that is appropriate for the available
 compute. On a cluster, print the commands and schedule them independently
@@ -165,7 +181,7 @@ final models and summaries while suppressing pool figures and intermediate
 checkpoints, add `--light-output`. This changes storage and diagnostic output,
 not the optimization or evaluation protocol.
 
-### 4. Aggregate completed runs
+### 5. Aggregate completed runs
 
 ```bash
 python scripts/analyze_results.py --stage 1 --metrics-only
@@ -238,13 +254,19 @@ They retain objective metrics, prompts, run identities, evaluation settings,
 and recorded seeds where available. Absolute paths and checkpoint fields were
 removed for anonymous distribution. `results/README.md` describes every table.
 
+The 60 final Stage-III populations are also distributed in
+`checkpoints/stage3`: 30 final NCA programs for each task, method, and seed.
+Each run includes an anonymous training manifest and a compact canonical
+evaluation summary. `checkpoints/stage3/manifest.csv` maps runs to directories,
+and `checkpoints/stage3/SHA256SUMS` protects the complete release payload.
+
 The original working log corpus is not part of the artifact. It occupies about
 37.6 GiB and mixes formal runs with superseded experiments, frequent pool
 figures, intermediate checkpoints, and machine-specific paths. Uploading that
 directory wholesale would not improve reproducibility and would obscure which
-runs support the paper. Final models can be regenerated with `--light-output`;
-the included run-level tables provide a lightweight audit of the reported
-comparisons.
+runs support the paper. The artifact instead includes only the final Stage-III
+models and their prompt-normalized evaluation records. New final models can be
+regenerated with `--light-output`.
 
 The seed identifiers of the historical Stage-I Weighted Sum, Tchebycheff, EPO,
 and MOO-SVGD runs were not retained in the downloaded records. Their rows are
@@ -263,11 +285,15 @@ reproductions. Stages II and III retain their reported seed identifiers.
 - `scripts/aggregate_stage3_results.py` validates and aggregates paired Stage-III runs.
 - `scripts/build_stage3_main_figure.py` renders the Stage-III overview.
 - `results/` contains the sanitized numerical record distributed with the artifact.
+- `checkpoints/stage3/` contains all 1,800 final Stage-III NCA models.
+- `scripts/verify_stage3_checkpoints.py` verifies model and metadata integrity.
 
 ## Artifact scope
 
 This repository contains the code and compact numerical evidence needed to
 inspect and reproduce the three-stage study. Exploratory methods, superseded
 runs, manuscript sources, credentials, machine-specific paths, and bulk model
-checkpoints are intentionally excluded. The Git history and repository metadata
-are anonymous for double-blind review.
+checkpoints are intentionally excluded. Final Stage-III weights are included;
+periodic checkpoints, optimizer states, pool snapshots, and training logs are
+not. The Git history and repository metadata are anonymous for double-blind
+review.
