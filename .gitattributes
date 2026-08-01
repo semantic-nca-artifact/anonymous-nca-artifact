@@ -7,8 +7,6 @@
 *.csv text eol=lf
 *.txt text eol=lf
 *.json text eol=lf
-*.html text eol=lf
-*.js text eol=lf
 *.tex text eol=lf
 *.bib text eol=lf
 *.bat text eol=crlf
@@ -19,7 +17,6 @@ requirements.txt text eol=lf
 *.png binary
 *.jpg binary
 *.jpeg binary
-*.webp binary
 *.pdf binary
 *.pt binary
 *.pth binary

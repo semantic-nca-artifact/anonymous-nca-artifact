@@ -139,21 +139,6 @@ loading PyTorch:
 python scripts/verify_stage3_checkpoints.py
 ```
 
-### Interactive developmental rollouts
-
-Open `viewer/index.html` after downloading and extracting the repository ZIP.
-The offline viewer synchronizes 96-step CA and MCA rollouts for all six
-semantic pairs. It uses training seed 22 and the fixed preference indices 0,
-14, and 29 for every task and method; no run or phenotype is selected by its
-visual appearance. Canonical similarities and objective-space populations are
-read from the released Stage-III summaries.
-
-The committed WebP sprite sheets can be regenerated from the released models:
-
-```bash
-python scripts/build_stage3_viewer.py --device cuda
-```
-
 The released `summary.json` files contain the prompt-normalized canonical
 objective vectors used by `results/stage3`. They are compact evaluation
 records, not training logs. In particular, the Cactus--Maple summaries record
