@@ -143,6 +143,7 @@ def verify(root: Path):
     root = root.resolve()
     pairs = load_pairs(ROOT / "configs" / "semantic_pairs.tsv")
     manifest_rows = read_csv(root / "manifest.csv")
+    model_rows = read_csv(root / "model_index.csv")
     result_rows = read_csv(ROOT / "results" / "stage3" / "per_run_metrics.csv")
     results = {
         (row["semantic_pair_slug"], row["strategy"], int(row["seed"])): row
@@ -161,7 +162,29 @@ def verify(root: Path):
     if observed_runs != expected_runs or len(manifest_rows) != len(expected_runs):
         raise ValueError("Stage-III manifest does not contain the expected 60 runs")
 
-    model_count = 0
+    indexed_models = {}
+    for row in model_rows:
+        key = (
+            row["semantic_pair_slug"],
+            row["strategy"],
+            int(row["seed"]),
+            int(row["subproblem_index"]),
+        )
+        if key in indexed_models:
+            raise ValueError(f"Duplicate Stage-III model slot: {key}")
+        indexed_models[key] = row
+
+    expected_slots = {
+        (slug, method, seed, index)
+        for slug, method, seed in expected_runs
+        for index in range(30)
+    }
+    if set(indexed_models) != expected_slots or len(model_rows) != 1800:
+        raise ValueError(
+            "Stage-III model index does not contain the expected 1,800 slots"
+        )
+
+    referenced_models = {}
     for row in manifest_rows:
         slug = row["semantic_pair_slug"]
         strategy = row["strategy"]
@@ -188,10 +211,31 @@ def verify(root: Path):
                    for point in objectives):
             raise ValueError(f"Invalid objective vectors: {run_dir}")
 
-        models = sorted(run_dir.glob("sub_*/final.pt"))
-        if len(models) != 30 or int(row["model_count"]) != 30:
-            raise ValueError(f"Expected 30 final models: {run_dir}")
-        model_count += len(models)
+        expected_run_dir = run_dir.relative_to(root).as_posix()
+        if int(row["model_count"]) != 30:
+            raise ValueError(f"Expected 30 model slots: {run_dir}")
+        for index, weight in enumerate(weights):
+            model_row = indexed_models[(slug, strategy, seed, index)]
+            if model_row["relative_run_dir"] != expected_run_dir:
+                raise ValueError(f"Model-index run mismatch: {run_dir} / {index}")
+            indexed_weight = (
+                float(model_row["weight_1"]),
+                float(model_row["weight_2"]),
+            )
+            if any(
+                not math.isclose(
+                    float(observed), float(expected), abs_tol=1e-12
+                )
+                for observed, expected in zip(indexed_weight, weight)
+            ):
+                raise ValueError(f"Model-index weight mismatch: {run_dir} / {index}")
+            model_path = safe_child(root, model_row["relative_model_path"])
+            digest = model_row["model_sha256"]
+            if model_path.name != f"{digest}.pt" or not model_path.is_file():
+                raise ValueError(f"Invalid indexed model: {model_path}")
+            previous = referenced_models.setdefault(model_path, digest)
+            if previous != digest:
+                raise ValueError(f"Conflicting model digest: {model_path}")
 
         expected = results[(slug, strategy, seed)]
         computed = run_statistics(objectives)
@@ -204,10 +248,21 @@ def verify(root: Path):
             ):
                 raise ValueError(f"Metric mismatch for {run_dir}: {metric}")
 
+    stored_models = set((root / "models" / "sha256").rglob("*.pt"))
+    if set(referenced_models) != stored_models:
+        raise ValueError(
+            "Content-addressed model inventory does not match the model index"
+        )
+    for model_path, expected_digest in referenced_models.items():
+        digest = hashlib.sha256(model_path.read_bytes()).hexdigest()
+        if digest != expected_digest:
+            raise ValueError(f"Model digest mismatch: {model_path}")
+
     checksum_count = verify_checksums(root)
     print(
         f"Verified {len(manifest_rows)} Stage-III runs, "
-        f"{model_count} final models, and {checksum_count} checksums."
+        f"{len(model_rows)} model slots, {len(stored_models)} unique model files, "
+        f"and {checksum_count} checksums."
     )
 
 

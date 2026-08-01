@@ -41,8 +41,9 @@ All path-bearing fields were removed from the published CSV files.
 The corresponding final Stage-III model populations are distributed under
 `../checkpoints/stage3`. Their compact `summary.json` files contain the 30
 canonical objective vectors from which these run-level metrics are computed.
-Run directories are mapped in `../checkpoints/stage3/manifest.csv` and covered
-by the accompanying SHA-256 checksum file.
+Run directories are mapped in `../checkpoints/stage3/manifest.csv`; individual
+population slots resolve through `../checkpoints/stage3/model_index.csv`. Both
+metadata and unique model files are covered by the SHA-256 checksum inventory.
 
 ## Columns and statistics
 

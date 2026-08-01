@@ -14,6 +14,7 @@ import os
 import re
 import textwrap
 from collections import defaultdict
+from functools import lru_cache
 from pathlib import Path
 
 import matplotlib
@@ -459,7 +460,7 @@ def discover_baseline_runs(root, methods=None, prompt_id=None):
 
     A run is identified by a directory whose immediate child directories use
     one of the known solution naming conventions.  This deliberately avoids
-    relying on the inconsistent extra nesting layers in copied legacy logs.
+    relying on the inconsistent extra nesting layers in historical logs.
     """
     root = Path(root)
     if not root.is_dir():
@@ -848,6 +849,49 @@ def evaluate_baseline_runs(specs, prompts, cache_dir, rollout_steps,
     ]
 
 
+@lru_cache(maxsize=None)
+def _read_release_model_index(path):
+    """Read a content-addressed release index keyed by run and slot."""
+
+    path = Path(path)
+    rows = {}
+    with path.open(newline="", encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            key = (row["relative_run_dir"], int(row["subproblem_index"]))
+            if key in rows:
+                raise ValueError(f"Duplicate model-index slot: {key}")
+            rows[key] = row["relative_model_path"]
+    return rows
+
+
+def _indexed_subproblem_checkpoints(run_dir, solution_count):
+    """Resolve release checkpoints from the nearest model index, if present."""
+
+    run_dir = Path(run_dir).resolve()
+    for release_root in (run_dir, *run_dir.parents):
+        index_path = release_root / "model_index.csv"
+        if not index_path.is_file():
+            continue
+        try:
+            relative_run = run_dir.relative_to(release_root).as_posix()
+        except ValueError:
+            continue
+        index = _read_release_model_index(index_path.resolve())
+        checkpoints = []
+        for solution_index in range(int(solution_count)):
+            relative_model = index.get((relative_run, solution_index))
+            if relative_model is None:
+                raise ValueError(
+                    f"Missing model-index slot {relative_run} / {solution_index}"
+                )
+            checkpoint = (release_root / relative_model).resolve()
+            if release_root not in checkpoint.parents or not checkpoint.is_file():
+                raise ValueError(f"Invalid indexed checkpoint: {relative_model}")
+            checkpoints.append(checkpoint)
+        return checkpoints
+    return None
+
+
 def _load_subproblem_checkpoints(summary_path, run_dir, solution_count):
     """Find checkpoints by explicit subproblem index across legacy run layers."""
     roots = [Path(summary_path).parent, Path(run_dir)]
@@ -876,6 +920,10 @@ def _load_subproblem_checkpoints(summary_path, run_dir, solution_count):
             checkpoint = final_checkpoint(directory)
             if checkpoint is not None:
                 checkpoints[index] = checkpoint
+    indexed = _indexed_subproblem_checkpoints(run_dir, solution_count)
+    if indexed is not None:
+        for index, checkpoint in enumerate(indexed):
+            checkpoints.setdefault(index, checkpoint)
     return [checkpoints.get(index) for index in range(int(solution_count))]
 
 

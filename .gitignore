@@ -49,6 +49,7 @@ paper/
 !checkpoints/stage3/**/*.json
 !checkpoints/stage3/**/*.csv
 !checkpoints/stage3/**/final.pt
+!checkpoints/stage3/models/sha256/**/*.pt
 !checkpoints/stage3/SHA256SUMS
 
 # Generated media and reports

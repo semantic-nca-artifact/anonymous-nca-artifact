@@ -61,11 +61,10 @@ observations.
 
 Stage I selects MOEA/D-CA by mean hypervolume under a common fresh-seed
 checkpoint reevaluation. Stage II isolates the effects of local-gradient and
-cooperation policies. Across the 30 paired Stage-III comparisons, CA has higher
-hypervolume in 28 runs and greater objective-space extent in all 30, whereas
-MCA has higher population-wide joint alignment in all 30. The best single
-max--min compromise is nearly evenly divided (13 CA, 17 MCA), indicating that
-the principal effect is population geometry rather than an isolated champion.
+cooperation policies. Stage III shows a consistent contrast between the broad
+objective-space coverage of CA and the stronger population-wide joint
+alignment of MCA. The principal effect is population geometry rather than an
+isolated champion.
 
 These statements are computed from the corrected task-specific prompts in
 `configs/semantic_pairs.tsv`, including `a tall green cactus` and
@@ -132,8 +131,9 @@ scheduler.
 ### 2. Verify the released Stage-III models
 
 The final 30-program population from every reported Stage-III run is included
-under `checkpoints/stage3`. Verify the 1,800 model files, run metadata, prompt
-assignments, and SHA-256 checksums without loading PyTorch:
+under `checkpoints/stage3`. Verify all 1,800 model slots, run metadata, prompt
+assignments, content-addressed model files, and SHA-256 checksums without
+loading PyTorch:
 
 ```bash
 python scripts/verify_stage3_checkpoints.py
@@ -257,8 +257,10 @@ removed for anonymous distribution. `results/README.md` describes every table.
 The 60 final Stage-III populations are also distributed in
 `checkpoints/stage3`: 30 final NCA programs for each task, method, and seed.
 Each run includes an anonymous training manifest and a compact canonical
-evaluation summary. `checkpoints/stage3/manifest.csv` maps runs to directories,
-and `checkpoints/stage3/SHA256SUMS` protects the complete release payload.
+evaluation summary. Exact duplicate weight files are stored once by SHA-256;
+`model_index.csv` maps every population slot to its model without removing any
+program. `manifest.csv` maps runs to directories, and `SHA256SUMS` protects the
+complete release payload.
 
 The original working log corpus is not part of the artifact. It occupies about
 37.6 GiB and mixes formal runs with superseded experiments, frequent pool
@@ -285,7 +287,7 @@ reproductions. Stages II and III retain their reported seed identifiers.
 - `scripts/aggregate_stage3_results.py` validates and aggregates paired Stage-III runs.
 - `scripts/build_stage3_main_figure.py` renders the Stage-III overview.
 - `results/` contains the sanitized numerical record distributed with the artifact.
-- `checkpoints/stage3/` contains all 1,800 final Stage-III NCA models.
+- `checkpoints/stage3/` contains all 1,800 final Stage-III model slots in a lossless content-addressed store.
 - `scripts/verify_stage3_checkpoints.py` verifies model and metadata integrity.
 
 ## Artifact scope
