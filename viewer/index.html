@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stage III Developmental Rollouts</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202326;
+      --muted: #626970;
+      --line: #d9dddf;
+      --surface: #f5f7f7;
+      --ca: #bd4f54;
+      --mca: #168681;
+      --focus: #246b95;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; min-height: 100%; max-width: 100%; overflow-x: hidden; }
+
+    body {
+      background: #ffffff;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    button, input { font: inherit; letter-spacing: 0; }
+
+    .shell { width: 100%; max-width: 1480px; margin: 0 auto; padding: 24px 28px 30px; overflow: hidden; }
+
+    .topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topline > div { min-width: 0; }
+
+    h1 { margin: 0 0 5px; font-family: Georgia, "Times New Roman", serif; font-size: 25px; font-weight: 600; }
+    .protocol { margin: 0; max-width: 100%; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+
+    .status {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      gap: 18px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: right;
+    }
+
+    .status strong { display: block; margin-top: 2px; color: var(--ink); font-size: 13px; font-weight: 650; }
+
+    .task-tabs {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(130px, 1fr));
+      gap: 6px;
+      padding: 14px 0;
+      overflow-x: auto;
+    }
+
+    .task-tab {
+      min-height: 42px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: #fff;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .task-tab:hover { border-color: #949b9f; color: var(--ink); }
+    .task-tab[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .task-tab:focus-visible, .icon-button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+    .task-heading {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+      padding: 14px 0 16px;
+    }
+
+    .prompt { min-width: 0; }
+    .prompt:last-child { text-align: right; }
+    .prompt-label { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+    .prompt-text { display: block; margin-top: 3px; font-family: Georgia, "Times New Roman", serif; font-size: 18px; line-height: 1.25; }
+    .pair-mark { color: var(--muted); font-size: 19px; }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: 36px 36px minmax(160px, 1fr) 70px 132px;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+    }
+
+    .icon-button {
+      width: 36px;
+      height: 34px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .icon-button:hover { border-color: #8e969a; }
+    .step-readout { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+
+    input[type="range"] { width: 100%; accent-color: var(--ink); cursor: pointer; }
+
+    .speed-control { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+    .speed-control button { min-height: 32px; border: 0; border-right: 1px solid var(--line); background: #fff; color: var(--muted); cursor: pointer; font-size: 11px; }
+    .speed-control button:last-child { border-right: 0; }
+    .speed-control button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+
+    .comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px; margin-top: 20px; }
+
+    .method-section { min-width: 0; padding-top: 12px; border-top: 3px solid var(--method-color); }
+    .method-header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 11px; }
+    .method-header h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--method-color); }
+    .method-metrics { display: flex; gap: 14px; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+    .method-metrics strong { color: var(--ink); font-size: 11px; }
+
+    .phenotype-scroll { overflow-x: auto; padding-bottom: 4px; }
+    .phenotype-grid { display: grid; grid-template-columns: repeat(3, minmax(145px, 1fr)); gap: 8px; min-width: 465px; }
+
+    .phenotype {
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: #fff;
+    }
+
+    .phenotype canvas { display: block; width: 100%; aspect-ratio: 1; background: #fff; }
+    .phenotype figcaption { min-height: 58px; padding: 7px 8px 8px; border-top: 1px solid var(--line); }
+    .preference-label { display: block; color: var(--ink); font-size: 11px; font-weight: 650; }
+    .preference-meta { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; line-height: 1.35; font-variant-numeric: tabular-nums; }
+
+    .front-wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; margin-top: 12px; }
+    .front-canvas { display: block; width: 100%; height: 182px; }
+    .front-legend { display: grid; gap: 7px; padding-top: 8px; color: var(--muted); font-size: 9px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .dot { width: 7px; height: 7px; border: 1px solid var(--method-color); border-radius: 50%; background: transparent; }
+    .dot.selected { background: var(--method-color); }
+
+    .footer { display: flex; justify-content: space-between; gap: 20px; margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+
+    .loading::after { content: "Loading"; position: absolute; color: var(--muted); font-size: 11px; }
+
+    @media (max-width: 980px) {
+      .shell { padding: 18px; }
+      .status { display: none; }
+      .task-tabs { grid-template-columns: repeat(6, minmax(150px, 1fr)); }
+      .comparison { grid-template-columns: 1fr; gap: 28px; }
+    }
+
+    @media (max-width: 620px) {
+      .shell { padding: 14px 12px 22px; }
+      h1 { font-size: 21px; }
+      .task-heading { grid-template-columns: 1fr; gap: 6px; }
+      .prompt:last-child { text-align: left; }
+      .pair-mark { display: none; }
+      .timeline { grid-template-columns: 36px 36px minmax(100px, 1fr) 58px; }
+      .speed-control { grid-column: 1 / -1; }
+      .method-header { align-items: flex-start; flex-direction: column; gap: 5px; }
+      .footer { flex-direction: column; gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topline">
+      <div>
+        <h1>Stage III Developmental Rollouts</h1>
+        <p class="protocol">Fixed-seed qualitative audit of preference-indexed NCA development</p>
+      </div>
+      <p class="status">
+        <span>Tasks<strong>6</strong></span>
+        <span>Methods<strong>CA / MCA</strong></span>
+        <span>Horizon<strong>96 steps</strong></span>
+      </p>
+    </header>
+
+    <nav class="task-tabs" id="taskTabs" aria-label="Semantic pairs"></nav>
+
+    <section class="task-heading" aria-live="polite">
+      <div class="prompt"><span class="prompt-label">Prompt 1</span><span class="prompt-text" id="prompt1"></span></div>
+      <span class="pair-mark" aria-hidden="true">&#8596;</span>
+      <div class="prompt"><span class="prompt-label">Prompt 2</span><span class="prompt-text" id="prompt2"></span></div>
+    </section>
+
+    <section class="timeline" aria-label="Shared rollout timeline">
+      <button class="icon-button" id="playButton" type="button" title="Play or pause" aria-label="Play or pause">&#10074;&#10074;</button>
+      <button class="icon-button" id="resetButton" type="button" title="Restart rollout" aria-label="Restart rollout">&#8634;</button>
+      <input id="frameSlider" type="range" min="0" value="0" aria-label="Rollout step">
+      <output class="step-readout" id="stepReadout">00 / 96</output>
+      <div class="speed-control" aria-label="Playback speed">
+        <button type="button" data-speed="0.5" aria-pressed="false">0.5x</button>
+        <button type="button" data-speed="1" aria-pressed="true">1x</button>
+        <button type="button" data-speed="2" aria-pressed="false">2x</button>
+      </div>
+    </section>
+
+    <section class="comparison">
+      <article class="method-section" id="section-ca" style="--method-color: var(--ca)">
+        <header class="method-header"><h2>MOEA/D-CA</h2><div class="method-metrics" data-metrics></div></header>
+        <div class="phenotype-scroll"><div class="phenotype-grid" data-phenotypes></div></div>
+        <div class="front-wrap">
+          <canvas class="front-canvas" data-front aria-label="CA objective-space population"></canvas>
+          <div class="front-legend"><span class="legend-item"><i class="dot"></i>Population</span><span class="legend-item"><i class="dot selected"></i>Displayed</span></div>
+        </div>
+      </article>
+
+      <article class="method-section" id="section-mca" style="--method-color: var(--mca)">
+        <header class="method-header"><h2>MOEA/D-MCA</h2><div class="method-metrics" data-metrics></div></header>
+        <div class="phenotype-scroll"><div class="phenotype-grid" data-phenotypes></div></div>
+        <div class="front-wrap">
+          <canvas class="front-canvas" data-front aria-label="MCA objective-space population"></canvas>
+          <div class="front-legend"><span class="legend-item"><i class="dot"></i>Population</span><span class="legend-item"><i class="dot selected"></i>Displayed</span></div>
+        </div>
+      </article>
+    </section>
+
+    <footer class="footer">
+      <span id="selectionNote"></span>
+      <span>Canonical similarities are read from the released Stage III summaries.</span>
+    </footer>
+  </main>
+
+  <script src="viewer-data.js"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const data = window.STAGE3_VIEWER_DATA;
+      const methods = [
+        { key: "moead_ca", section: document.querySelector("#section-ca") },
+        { key: "moead_mca", section: document.querySelector("#section-mca") }
+      ];
+      const state = { pair: 0, frame: 0, playing: true, speed: 1, lastTick: performance.now() };
+      const sheets = new Map();
+      const slider = document.querySelector("#frameSlider");
+      const playButton = document.querySelector("#playButton");
+      const stepReadout = document.querySelector("#stepReadout");
+
+      slider.max = String(data.frame_count - 1);
+      document.querySelector("#selectionNote").textContent =
+        `Training seed ${data.training_seed}; subproblems ${data.selection_rule.subproblem_indices.join(", ")}; rollout RNG ${data.rollout_seed}.`;
+
+      function titleCaseSlug(slug) {
+        return slug.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join("--");
+      }
+
+      function buildTabs() {
+        const tabs = document.querySelector("#taskTabs");
+        data.pairs.forEach((pair, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "task-tab";
+          button.textContent = titleCaseSlug(pair.slug);
+          button.setAttribute("aria-selected", String(index === state.pair));
+          button.addEventListener("click", () => selectPair(index));
+          tabs.appendChild(button);
+        });
+      }
+
+      function buildPhenotypeSlots() {
+        methods.forEach(({ section }) => {
+          const grid = section.querySelector("[data-phenotypes]");
+          data.selection_rule.labels.forEach((label, column) => {
+            const figure = document.createElement("figure");
+            figure.className = "phenotype";
+            figure.innerHTML = `<canvas data-column="${column}" aria-label="${label} rollout"></canvas><figcaption><span class="preference-label"></span><span class="preference-meta"></span></figcaption>`;
+            grid.appendChild(figure);
+          });
+        });
+      }
+
+      function loadSheet(path) {
+        if (sheets.has(path)) return sheets.get(path);
+        const promise = new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = path;
+        });
+        sheets.set(path, promise);
+        return promise;
+      }
+
+      function formatMetric(value) { return Number(value).toFixed(3); }
+
+      function updateMethod(section, method) {
+        section.querySelector("[data-metrics]").innerHTML =
+          `<span>HV <strong>${formatMetric(method.metrics.hypervolume)}</strong></span>` +
+          `<span>B<sub>pop</sub> <strong>${formatMetric(method.metrics.population_average_worst_similarity)}</strong></span>`;
+
+        section.querySelectorAll(".phenotype").forEach((figure, column) => {
+          const selected = method.selected[column];
+          figure.querySelector(".preference-label").textContent = selected.label;
+          figure.querySelector(".preference-meta").textContent =
+            `i=${String(selected.index).padStart(2, "0")}  w=${selected.weight[0].toFixed(3)}/${selected.weight[1].toFixed(3)}  s=${selected.similarity[0].toFixed(3)}/${selected.similarity[1].toFixed(3)}`;
+        });
+      }
+
+      function commonDomain(pair) {
+        const points = methods.flatMap(({ key }) => pair.methods[key].points);
+        const xs = points.map(point => point[0]);
+        const ys = points.map(point => point[1]);
+        const xPad = Math.max(0.01, (Math.max(...xs) - Math.min(...xs)) * 0.12);
+        const yPad = Math.max(0.01, (Math.max(...ys) - Math.min(...ys)) * 0.12);
+        return {
+          x0: Math.min(...xs) - xPad, x1: Math.max(...xs) + xPad,
+          y0: Math.min(...ys) - yPad, y1: Math.max(...ys) + yPad
+        };
+      }
+
+      function drawFront(canvas, method, domain, color) {
+        const ratio = window.devicePixelRatio || 1;
+        const width = Math.max(280, Math.round(canvas.clientWidth));
+        const height = 182;
+        canvas.width = Math.round(width * ratio);
+        canvas.height = Math.round(height * ratio);
+        const context = canvas.getContext("2d");
+        context.scale(ratio, ratio);
+        context.clearRect(0, 0, width, height);
+
+        const margin = { left: 37, right: 8, top: 8, bottom: 28 };
+        const x = value => margin.left + (value - domain.x0) / (domain.x1 - domain.x0) * (width - margin.left - margin.right);
+        const y = value => height - margin.bottom - (value - domain.y0) / (domain.y1 - domain.y0) * (height - margin.top - margin.bottom);
+
+        context.strokeStyle = "#d9dddf";
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(margin.left, margin.top);
+        context.lineTo(margin.left, height - margin.bottom);
+        context.lineTo(width - margin.right, height - margin.bottom);
+        context.stroke();
+
+        context.fillStyle = "#626970";
+        context.font = "9px system-ui";
+        context.fillText("Similarity 2", 2, 14);
+        context.textAlign = "right";
+        context.fillText("Similarity 1", width - 8, height - 7);
+        context.textAlign = "left";
+
+        method.points.forEach(point => {
+          context.beginPath();
+          context.arc(x(point[0]), y(point[1]), 2.4, 0, Math.PI * 2);
+          context.strokeStyle = color;
+          context.globalAlpha = 0.55;
+          context.stroke();
+        });
+        context.globalAlpha = 1;
+        method.selected.forEach(item => {
+          context.beginPath();
+          context.arc(x(item.similarity[0]), y(item.similarity[1]), 4, 0, Math.PI * 2);
+          context.fillStyle = color;
+          context.fill();
+          context.strokeStyle = "#ffffff";
+          context.lineWidth = 1;
+          context.stroke();
+        });
+      }
+
+      async function drawRollouts() {
+        const pair = data.pairs[state.pair];
+        await Promise.all(methods.map(async ({ key, section }) => {
+          const method = pair.methods[key];
+          const image = await loadSheet(method.asset);
+          section.querySelectorAll(".phenotype canvas").forEach((canvas, column) => {
+            const ratio = window.devicePixelRatio || 1;
+            const side = Math.max(145, Math.round(canvas.clientWidth));
+            canvas.width = Math.round(side * ratio);
+            canvas.height = Math.round(side * ratio);
+            const context = canvas.getContext("2d");
+            context.setTransform(ratio, 0, 0, ratio, 0, 0);
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = "high";
+            context.fillStyle = "#ffffff";
+            context.fillRect(0, 0, side, side);
+            context.drawImage(
+              image,
+              column * data.tile_width,
+              state.frame * data.tile_height,
+              data.tile_width,
+              data.tile_height,
+              0, 0, side, side
+            );
+          });
+        }));
+      }
+
+      function updateStep() {
+        slider.value = String(state.frame);
+        const step = state.frame * data.frame_interval;
+        stepReadout.value = `${String(step).padStart(2, "0")} / ${data.rollout_steps}`;
+        stepReadout.textContent = stepReadout.value;
+        drawRollouts();
+      }
+
+      function selectPair(index) {
+        state.pair = index;
+        state.frame = 0;
+        const pair = data.pairs[index];
+        document.querySelectorAll(".task-tab").forEach((tab, tabIndex) => tab.setAttribute("aria-selected", String(tabIndex === index)));
+        document.querySelector("#prompt1").textContent = pair.prompt_1;
+        document.querySelector("#prompt2").textContent = pair.prompt_2;
+        const domain = commonDomain(pair);
+        methods.forEach(({ key, section }) => {
+          updateMethod(section, pair.methods[key]);
+          const color = getComputedStyle(section).getPropertyValue("--method-color").trim();
+          drawFront(section.querySelector("[data-front]"), pair.methods[key], domain, color);
+        });
+        updateStep();
+      }
+
+      function setPlaying(playing) {
+        state.playing = playing;
+        playButton.innerHTML = playing ? "&#10074;&#10074;" : "&#9654;";
+        playButton.setAttribute("aria-label", playing ? "Pause" : "Play");
+        state.lastTick = performance.now();
+      }
+
+      function animate(now) {
+        const interval = 1000 / (6 * state.speed);
+        if (state.playing && now - state.lastTick >= interval) {
+          const elapsedFrames = Math.max(1, Math.floor((now - state.lastTick) / interval));
+          state.frame = (state.frame + elapsedFrames) % data.frame_count;
+          state.lastTick = now;
+          updateStep();
+        }
+        requestAnimationFrame(animate);
+      }
+
+      playButton.addEventListener("click", () => setPlaying(!state.playing));
+      document.querySelector("#resetButton").addEventListener("click", () => { state.frame = 0; state.lastTick = performance.now(); updateStep(); });
+      slider.addEventListener("input", event => { state.frame = Number(event.target.value); state.lastTick = performance.now(); updateStep(); });
+      document.querySelectorAll(".speed-control button").forEach(button => {
+        button.addEventListener("click", () => {
+          state.speed = Number(button.dataset.speed);
+          document.querySelectorAll(".speed-control button").forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+        });
+      });
+      window.addEventListener("resize", () => selectPair(state.pair));
+
+      buildTabs();
+      buildPhenotypeSlots();
+      selectPair(0);
+      requestAnimationFrame(animate);
+    })();
+  </script>
+</body>
+</html>
